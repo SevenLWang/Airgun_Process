@@ -7,4 +7,4 @@ Usage:
          python PreProcess.py [year] [min_day] [max_day]  
   2. Stack.py: Stack the selected seismic data according to the SNR level (e.g. every 20 stacked records) and deconvolute the stacked datas in every day from the specific year.  
      
-          python Stack.py 2015 20  
+          python Stack.py [year] [limit of stack number for SNR selection]  
