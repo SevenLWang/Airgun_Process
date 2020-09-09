@@ -27,6 +27,7 @@ from pyrocko import io
 
 ###############################################################################
 
+
 year = sys.argv[1]
 min_day = sys.argv[2]
 max_day = sys.argv[3]
@@ -64,12 +65,12 @@ def ReattributeMiniSEED():
     print('Reattribute the original mseed files according to the date')
     for f in tqdm(glob(join(mseed_file_dir,'*.mseed'))):
         filename = basename(f)
-        year = filename.split('.')[5]
+        y = filename.split('.')[5]
         day = filename.split('.')[6]
         for d in glob(yeardir):
             yy = basename(d)[0:4]
             dd = basename(d)[4:7]
-            if (year == yy and day == dd):
+            if (y == yy and day == dd):
                 cmd = 'cp {} {}'.format(f,d)
                 os.system(cmd)
 
@@ -86,12 +87,12 @@ def ReattributeMiniSEED():
 
     for f in glob(join(dire,'*.SAC')):
         filename = basename(f)
-        year = filename.split('.')[5]
+        y = filename.split('.')[5]
         day = filename.split('.')[6]
         for d in glob(yeardir):
             yy = basename(d)[0:4]
             dd = basename(d)[4:7]
-            if (year == yy and day == dd):
+            if (y == yy and day == dd):
                 cmd = 'mv {} {}'.format(f,d)
                 os.system(cmd)
 
@@ -171,17 +172,17 @@ def CutEvents():
                 y = filename.split('.')[5];jd = filename.split('.')[6];net = filename.split('.')[0];sta = filename.split('.')[1];loc = filename.split('.')[2];cha = filename.split('.')[3]
                 #print(y,jd,net,sta,loc,cha)
                 for i in range(len(events)):
-                    year = events['Year'][i]
+                    y = events['Year'][i]
                     jday = events['Julday'][i]
                     hour = events['Hour'][i]
                     minute = events['Minute'][i]
                     second = events['Second'][i]
                     msecond = events['MSecond'][i]
                     #print(year,y,jday,jd)
-                    if int(year) == int(y) and int(jday) == int(jd) :
+                    if int(y) == int(y) and int(jday) == int(jd) :
                         cmd = "saclst nzyear nzjday nzhour nzmin nzsec nzmsec f %s" % (f)
                         junk, kzyy, kzjd, kzhou, kzmin, kzsec, kzmsec = os.popen(cmd).read().split()
-                        Time = UTCDateTime(year=int(year),julday=int(jday),hour=int(hour),minute=int(minute),second=int(second),microsecond=(int(msecond)*1000))
+                        Time = UTCDateTime(year=int(y),julday=int(jday),hour=int(hour),minute=int(minute),second=int(second),microsecond=(int(msecond)*1000))
                         kztime = UTCDateTime(year=int(kzyy),julday=int(kzjd),hour=int(kzhou),minute=int(kzmin),second=int(kzsec),microsecond=(int(kzmsec)*1000))
                         otime = Time - kztime 
                         btime = otime - 100
@@ -240,12 +241,12 @@ def FileFormatConversion():
         os.system(cmd)
 
     cmd = ''
-    for d in glob(join(middle_save,year+'*')):
+    for d in tqdm(glob(join(middle_save,year+'*'))):
         date = basename(d)
-        for dd in glob(join(d,'No.*'))
+        for dd in glob(join(d,'No.*')):
             dirname = basename(dd)
             seq = dirname.split('.')[1]
-            for f in tqdm(glob(join(d,'*.mseed'))):
+            for f in glob(join(d,'*.mseed')):
                 filename = basename(f)
                 datetime = filename.split('.')[0]
                 sequence = filename.split('.')[1]
@@ -267,9 +268,9 @@ def FileFormatConversion():
             path = os.path.realpath(d)
             os.rename(f,join(path,name))
 
-    for d in glob(join(middle_save,year+'*'))
-        cmd = 'rm %s/*.SAC' % (d)
-        cmd += 'rm %s/*.mseedd' % (d)
+    for d in glob(join(middle_save,year+'*')):
+        cmd = 'rm %s/*.SAC\n' % (d)
+        cmd += 'rm %s/*.mseed\n' % (d)
         os.system(cmd)
 
 ###############################################################################
@@ -313,7 +314,7 @@ def ComponentRotation():
             loc = filename.split(".")[4]
             date = filename.split(".")[0]
             number = filename.split(".")[1]
-            year = date[0:4]
+            y = date[0:4]
             jday = date[4:7]
 
             #path1 = file_1.split('/')[-1]
@@ -332,9 +333,9 @@ def ComponentRotation():
     ### Header Write    
             s += "r %s %s\n" % (file_1,file_2)
             s += "rot to gcp\n"
-            s += "w %s %s\n" % (join(year+jday+'.'+number+'.'+net+'.'+sta+'.'+loc+'.r'), join(year+jday+'.'+number+'.'+net+'.'+sta+'.'+loc+'.t'))
+            s += "w %s %s\n" % (join(y+jday+'.'+number+'.'+net+'.'+sta+'.'+loc+'.r'), join(y+jday+'.'+number+'.'+net+'.'+sta+'.'+loc+'.t'))
             s += "cut off\n"
-            shutil.copy(file_3, join(year+jday+'.'+number+'.'+net+'.'+sta+'.'+loc+'.z'))
+            shutil.copy(file_3, join(y+jday+'.'+number+'.'+net+'.'+sta+'.'+loc+'.z'))
         s += "q\n"
         SAC.communicate(s.encode())
         os.system("mv *.[rtz] %s/%s_rot/" % (input_dire,basename(input_dire)))
