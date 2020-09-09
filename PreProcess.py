@@ -110,6 +110,7 @@ def PreProcess():
         s += 'taper\n'
         s += 'trans from evalresp fname /work/wang_li/Project/Airgun_Process/RESP.ALL to none freq 0.004 0.005 30 32\n'
         s += 'mul 1e-9\n'
+        s += 'decimate 5\n'
         s += 'w over\n'
         s += 'q\n' 
         p.communicate(s.encode())
