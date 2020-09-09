@@ -200,7 +200,7 @@ for f in tqdm(files):
     stack = filename.split('.')[2]
     st = obspy.read(f)
     tr = st[0]
-    tr_filt =tr.copy()
+    tr_filt = tr.copy()
     tr_filt.filter('bandpass',freqmin = 3, freqmax = 8 ,corners = 4, zerophase = True)
 
 ### match the data    
@@ -281,7 +281,7 @@ for d in tqdm(differdir):
     filenumber = os.popen(cmd).read()
     stacknumber = 0
     if int(filenumber) != 0:
-        p = subprocess.Popen(['sac'], stdin=subprocess.PIPE)
+        p = subprocess.Popen(['sac'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         s = ''
         s += 'sss\n'
         s += 'zerostack\n'
@@ -295,11 +295,11 @@ for d in tqdm(differdir):
 #        name = ['linestack',date,'final',str(stacknumber),ss,cc]
         if cc == 'r':
             cc = 'BHR'
-        else if cc == 't':
+        elif cc == 't':
             cc = 'BHT'
-        else if cc == 'z':
+        elif cc == 'z':
             cc = 'BHZ'
-        name = ['DISP',ss,cc]
+        name = ['DISPL',ss,cc]
         name = '.'.join(name)
         s += 'timewindow 0 200\n'
         s += 'sumstack\n'
@@ -319,95 +319,116 @@ for d in tqdm(differdir):
         s += 'q\n'
         p.communicate(s.encode())
 
-cmd = 'mv *.[rtz] %s/%s' % (final_stack_dir,date)
+cmd = 'mv DISPL.* %s' % (final_stack_dir)
 os.system(cmd)
 
-############################################################################### 
+for f in glob(join(final_stack_dir,'DISP*')):
+    st = obspy.read(f)
+    tr = st[0]
+    delta = tr.stats.delta
+    time = 0.0
+    filename = basename(f)
+    with open(filename,'w') as table:
+        for i in range(20001):
+            line = ''
+            time = float(delta) * i
+            line += str(time) + ' ' + str(tr.data[i]) + ' ' +'\n'
+            table.write(line)
 
-###############################################################################
+for f in glob('DISP*'):
+    filename = basename(f)
+    name1 = filename.split('.')[1]
+    name2 = filename.split('.')[2]
+    name = ['DISPL',name1,name2]
+    name = '.'.join(name)
+    os.rename(filename,name)
 
-    # deconvolute the final stacked records
+############################################################################## 
 
-# ### cut the signal window of records as the reference waveform in deconvolution from station ZDY22 
-# files = join(final_stack_dir,'*.ZDY22.*')
-# for f in glob(files):
-#     filename = basename(f)
-#     stacktype = filename.split('.')[0]
-#     number = filename.split('.')[3]
-#     station = filename.split('.')[4]
-#     channel = filename.split('.')[5]
-#     p = subprocess.Popen(['sac'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-#     s = ''
-#     s += 'cut 19 23\n'
-#     s += 'r %s\n' % (f)
-#     s += 'w %s.%s.%s.%s.refer.%s\n' % (stacktype,date,number,station,channel)
-#     s += 'q\n'
-#     p.communicate(s.encode())
-# cmd = 'mv *.[rtz] %s/%s' % (refer_dir,date)
-# os.system(cmd)
+##############################################################################
 
-# ### deconvolution
-# print('Deconvolution:')
-# files = glob(join(final_stack_dir,'*.[rtz]'))
-# refer_files = glob(join(refer_dir,date,'*.[rtz]'))
-# for f in tqdm(files):
-#     filename = basename(f)
-#     stacktype = filename.split('.')[0]
-#     date = filename.split('.')[1]
-#     number = filename.split('.')[3]
-#     station = filename.split('.')[4]
-#     channel = filename.split('.')[5]
-#     name = [stacktype,date,station,'deconv',channel]
-#     name = '.'.join(name)
-#     for refer_file in (refer_files):
-#         STACKTYPE = basename(refer_file).split('.')[0]
-#         DATE = basename(refer_file).split('.')[1]
-#         NUMBER = basename(refer_file).split('.')[3]
-#         STATION = basename(refer_file).split('.')[4]
-#         CHANNEL = basename(refer_file).split('.')[5]
-#         if date == DATE and channel == CHANNEL:
-#             cmd = '/work/wang_li/Project/Airgun_Process/wtdeconv -s %s -d %s -w 0.05 -o %s' % (f,refer_file,name)
-#             os.system(cmd)
-#             p = subprocess.Popen(['sac'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-#             s = ''
-#             s += 'r %s\n' % (name)
-# #            s += 'bp c 3 8 n 4 p 2\n'
-#             s += 'ch KSTNM {} KCMPNM {} KNETWK G3\n'.format(station,channel)
-#             s += 'w over\n'
-#             s += 'q\n'
-#             p.communicate(s.encode())
-#             break
-#         else:
-#             continue
+    deconvolute the final stacked records
 
-# cmd = 'mv *.[rtz] %s/%s' % (result_dir,date)
-# os.system(cmd)
+### cut the signal window of records as the reference waveform in deconvolution from station ZDY22 
+files = join(final_stack_dir,'*.ZDY22.*')
+for f in glob(files):
+    filename = basename(f)
+    stacktype = filename.split('.')[0]
+    number = filename.split('.')[3]
+    station = filename.split('.')[4]
+    channel = filename.split('.')[5]
+    p = subprocess.Popen(['sac'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    s = ''
+    s += 'cut 19 23\n'
+    s += 'r %s\n' % (f)
+    s += 'w %s.%s.%s.%s.refer.%s\n' % (stacktype,date,number,station,channel)
+    s += 'q\n'
+    p.communicate(s.encode())
+cmd = 'mv *.[rtz] %s/%s' % (refer_dir,date)
+os.system(cmd)
 
-# ### supply the header information of records
-# stainfor_dir = join(ddir,'station_infor.dat')
-# stations = pd.read_table(stainfor_dir,names=['Stations','CMPAZ','CMPINC'],encoding='gb2312',sep=' ')
+### deconvolution
+print('Deconvolution:')
+files = glob(join(final_stack_dir,'*.[rtz]'))
+refer_files = glob(join(refer_dir,date,'*.[rtz]'))
+for f in tqdm(files):
+    filename = basename(f)
+    stacktype = filename.split('.')[0]
+    date = filename.split('.')[1]
+    number = filename.split('.')[3]
+    station = filename.split('.')[4]
+    channel = filename.split('.')[5]
+    name = [stacktype,date,station,'deconv',channel]
+    name = '.'.join(name)
+    for refer_file in (refer_files):
+        STACKTYPE = basename(refer_file).split('.')[0]
+        DATE = basename(refer_file).split('.')[1]
+        NUMBER = basename(refer_file).split('.')[3]
+        STATION = basename(refer_file).split('.')[4]
+        CHANNEL = basename(refer_file).split('.')[5]
+        if date == DATE and channel == CHANNEL:
+            cmd = '/work/wang_li/Project/Airgun_Process/wtdeconv -s %s -d %s -w 0.05 -o %s' % (f,refer_file,name)
+            os.system(cmd)
+            p = subprocess.Popen(['sac'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            s = ''
+            s += 'r %s\n' % (name)
+#            s += 'bp c 3 8 n 4 p 2\n'
+            s += 'ch KSTNM {} KCMPNM {} KNETWK G3\n'.format(station,channel)
+            s += 'w over\n'
+            s += 'q\n'
+            p.communicate(s.encode())
+            break
+        else:
+            continue
 
-# print('Supply some header information:')
-# for f in tqdm(glob(join(result_dir,date,'*.[rtz]'))):
-#     sacname = basename(f)
-#     temp = sacname.split('.')
-#     for i in range(len(stations)):
-#         station_name = stations['Stations'][i]
-#         cmpaz = stations['CMPAZ'][i]
-#         cmpinc = stations['CMPINC'][i]
-#         temp1 = station_name.split('.')
-#         if (temp[3] == temp1[3] and temp[5] == temp1[5]):
-#             p = subprocess.Popen(['sac'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-#             s = ""
-#             s += "r %s\n" % (f)
-#             s += "ch cmpaz %.6f\n" % float(cmpaz)
-#             s += "ch cmpinc %.6f\n" % float(cmpinc)
-#             s += "wh\n"
-#             s += "q\n"
-#             p.communicate(s.encode())
-#             break
-#         else:
-#             continue
+cmd = 'mv *.[rtz] %s/%s' % (result_dir,date)
+os.system(cmd)
+
+### supply the header information of records
+stainfor_dir = join(ddir,'station_infor.dat')
+stations = pd.read_table(stainfor_dir,names=['Stations','CMPAZ','CMPINC'],encoding='gb2312',sep=' ')
+
+print('Supply some header information:')
+for f in tqdm(glob(join(result_dir,date,'*.[rtz]'))):
+    sacname = basename(f)
+    temp = sacname.split('.')
+    for i in range(len(stations)):
+        station_name = stations['Stations'][i]
+        cmpaz = stations['CMPAZ'][i]
+        cmpinc = stations['CMPINC'][i]
+        temp1 = station_name.split('.')
+        if (temp[3] == temp1[3] and temp[5] == temp1[5]):
+            p = subprocess.Popen(['sac'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            s = ""
+            s += "r %s\n" % (f)
+            s += "ch cmpaz %.6f\n" % float(cmpaz)
+            s += "ch cmpinc %.6f\n" % float(cmpinc)
+            s += "wh\n"
+            s += "q\n"
+            p.communicate(s.encode())
+            break
+        else:
+            continue
                     
 ###############################################################################  
         
