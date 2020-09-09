@@ -266,6 +266,11 @@ def FileFormatConversion():
             path = os.path.realpath(d)
             os.rename(f,join(path,name))
 
+    for d in glob(join(middle_save,year+'*'))
+        cmd = 'rm %s/*.SAC' % (d)
+        cmd += 'rm %s/*.mseedd' % (d)
+        os.system(cmd)
+
 ###############################################################################
 
     # components rotation
